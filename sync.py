@@ -23,21 +23,23 @@ def main():
         
     configFilePath = _ExecPath + 'sync.conf'
     
-    hostAndPath, exclude = getConfig(configFilePath)
+    hostAndPath, exclude, excludePush, excludePull = getConfig(configFilePath)
     
     userCommand = sys.argv[1].lower()
     
     if userCommand == 'push':
-        rsyncProcess = runProcess(getRsyncCommand(_ExecPath, hostAndPath, exclude, True))
-        rsyncProcess.wait()
-        if confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?"):
+	exclude.extend(excludePush)
+	rsyncProcess = runProcess(getRsyncCommand(_ExecPath, hostAndPath, exclude, True))
+	rsyncProcess.wait()
+	if confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?"):
             rsyncProcess = runProcess(getRsyncCommand(_ExecPath, hostAndPath, exclude, False))
             rsyncProcess.wait()
     elif userCommand == 'pull':
-        rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, True))
-        rsyncProcess.wait()
-        if confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?"):
-            rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, False))
+	exclude.extend(excludePull)
+	rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, True))
+	rsyncProcess.wait()
+	if confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?"):
+	    rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, False))
             rsyncProcess.wait()
     
 
@@ -63,6 +65,8 @@ def getConfig(configFilePath):
     execConfig.read(configFilePath)
     
     exclude = []
+    excludePush = []
+    excludePull = []
     
     try:
         remoteHost = execConfig.get('sync', 'remoteHost')
@@ -70,7 +74,13 @@ def getConfig(configFilePath):
         if execConfig.has_option('sync', 'exclude'):
             excludeString = execConfig.get('sync', 'exclude')
             exclude = splitStripString(excludeString, ",")
-    
+	if execConfig.has_option('sync', 'excludePush'):
+	    excludeString = execConfig.get('sync', 'excludePush')
+	    excludePush = splitStripString(excludeString, ",")
+        if execConfig.has_option('sync', 'excludePull'):
+            excludeString = execConfig.get('sync', 'excludePull')
+            excludePull = splitStripString(excludeString, ",")
+ 
     except ConfigParser.NoSectionError as e:
         print('There was a problem with your config file. Please make sure it exists. Attempted path: ' + configFilePath + ' Error: ' + str(e))
         exit()
@@ -78,7 +88,7 @@ def getConfig(configFilePath):
         print('There was a problem with your config file. You were missing at least one option we require. Error: ' + str(e))
         exit()
         
-    return(remoteHost + ":" + hostTreePath, exclude)
+    return(remoteHost + ":" + hostTreePath, exclude, excludePush, excludePull)
 
 
 def splitStripString(str, delim):
