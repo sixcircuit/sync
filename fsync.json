@@ -1,0 +1,6 @@
+{
+    "remote" : "remoteFolder",
+    "exclude" : ["excludefolder"],
+    "excludePush" : ["excludefolder"],
+    "excludePull" : ["excludefolder"]
+}

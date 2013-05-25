@@ -5,12 +5,13 @@ import os
 import json
 import subprocess
 
-def printConfig():
-    from pprint import pprint
-    pprint(getConfig())
-
 def getConfig():
-    configFile = open(configFilePath())
+    try:
+        configFile = open(configFilePath())
+    except IOError:
+        print("Missing fsync.conf file in current directory.")
+        exit(1)
+
     config = json.load(configFile)
     configFile.close()
 
@@ -29,12 +30,12 @@ def cwd():
     return(os.getcwd())
 
 def configFilePath():
-    return(cwd() + '/sync.json')
+    return(cwd() + '/fsync.json')
 
 def main():
 
     if len(sys.argv) == 1:
-        print 'usage: sync.py { push | pull }'
+        print 'usage: fsync { push | pull }'
         exit()
 
     command = sys.argv[1].lower()
