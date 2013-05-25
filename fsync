@@ -15,14 +15,18 @@ def getConfig():
     config = json.load(configFile)
     configFile.close()
 
-    config["local"] = config.get("local", cwd())
+    config["local"] = addSlash(config.get("local", cwd()))
     config["exclude"] = config.get("exclude", [])
     config["excludePush"] = config.get("excludePush", [])
     config["excludePull"] = config.get("excludePull", [])
 
+    config["exclude"].extend(['fsync.json'])
+
     if(config.get("remote") == None):
         print("You must have a remote in your config file.")
         exit(1)
+
+    config["remote"] = addSlash(config.get("remote"))
 
     return(config)
 
@@ -31,6 +35,10 @@ def cwd():
 
 def configFilePath():
     return(cwd() + '/fsync.json')
+
+def addSlash(path):
+    if path[len(path)-1] != '/':
+        return(path + '/')
 
 def main():
 
@@ -79,6 +87,9 @@ def getRsyncCommand(command, config, dryRun):
     elif command == 'pull':
         rsyncCommand.append(config["remote"])
         rsyncCommand.append(config["local"])
+
+    for s in rsyncCommand:
+        sys.stdout.write(s + ' ');
 
     return(rsyncCommand)
     
