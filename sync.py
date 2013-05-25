@@ -2,105 +2,86 @@
 
 import sys
 import os
-import shutil
-import signal
-import pickle
-import re
+import json
 import subprocess
-import logging
-import ConfigParser
 
-_ExecPath = os.path.abspath(os.path.dirname(__file__)) + "/"
+def printConfig():
+    from pprint import pprint
+    pprint(getConfig())
 
-#_LogFilePath = _ExecPath + 'sync.log'
-#logging.basicConfig(filename=_LogFilePath,level=logging.DEBUG)
+def getConfig():
+    configFile = open(configFilePath())
+    config = json.load(configFile)
+    configFile.close()
+
+    config["local"] = config.get("local", cwd())
+    config["exclude"] = config.get("exclude", [])
+    config["excludePush"] = config.get("excludePush", [])
+    config["excludePull"] = config.get("excludePull", [])
+
+    if(config.get("remote") == None):
+        print("You must have a remote in your config file.")
+        exit(1)
+
+    return(config)
+
+def cwd():
+    return(os.getcwd())
+
+def configFilePath():
+    return(cwd() + '/sync.json')
 
 def main():
 
     if len(sys.argv) == 1:
-        print 'usage: sync.py push|pull'
+        print 'usage: sync.py { push | pull }'
         exit()
-        
-    configFilePath = _ExecPath + 'sync.conf'
+
+    command = sys.argv[1].lower()
+    dest = cwd()
+    config = getConfig()
     
-    hostAndPath, exclude, excludePush, excludePull = getConfig(configFilePath)
-    
-    userCommand = sys.argv[1].lower()
-    
-    if userCommand == 'push':
-	exclude.extend(excludePush)
-	rsyncProcess = runProcess(getRsyncCommand(_ExecPath, hostAndPath, exclude, True))
-	rsyncProcess.wait()
-	if confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?"):
-            rsyncProcess = runProcess(getRsyncCommand(_ExecPath, hostAndPath, exclude, False))
-            rsyncProcess.wait()
-    elif userCommand == 'pull':
-	exclude.extend(excludePull)
-	rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, True))
-	rsyncProcess.wait()
-	if confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?"):
-	    rsyncProcess = runProcess(getRsyncCommand(hostAndPath+'/', _ExecPath, exclude, False))
-            rsyncProcess.wait()
+    runProcess(getRsyncCommand(command, config, True)).wait()
+
+    confirmed = False
+
+    if command == 'push':
+	confirmed = confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?")
+    elif command == 'pull':
+        confirmed = confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?")
+
+    if confirmed: 
+        runProcess(getRsyncCommand(command, config, False)).wait()
     
 
-def getRsyncCommand(source, dest, exclude, dryRun):
+def getRsyncCommand(command, config, dryRun):
     
     rsyncCommand = ['rsync', '--verbose', '--progress', '--stats', '--compress', '--recursive', '--backup', '--backup-dir=rsyncBackup~', '--exclude', 'rsyncBackup~', '--links', '--delete', '--times']
     
     if dryRun:
         rsyncCommand.append('--dry-run')
     
+    exclude = config['exclude']
+
+    if command == 'push':
+        exclude.extend(config['excludePush'])
+    elif command == 'pull':
+        exclude.extend(config['excludePull'])
+
     for folder in exclude:
         rsyncCommand.append('--exclude')
         rsyncCommand.append(folder) 
-    
-    rsyncCommand.append(source)
-    rsyncCommand.append(dest)
+
+    if command == 'push':
+        rsyncCommand.append(config["local"])
+        rsyncCommand.append(config["remote"])
+    elif command == 'pull':
+        rsyncCommand.append(config["remote"])
+        rsyncCommand.append(config["local"])
 
     return(rsyncCommand)
     
-def getConfig(configFilePath):
-    
-    execConfig = ConfigParser.RawConfigParser() 
-    execConfig.read(configFilePath)
-    
-    exclude = []
-    excludePush = []
-    excludePull = []
-    
-    try:
-        remoteHost = execConfig.get('sync', 'remoteHost')
-        hostTreePath = execConfig.get('sync', 'hostTreePath')
-        if execConfig.has_option('sync', 'exclude'):
-            excludeString = execConfig.get('sync', 'exclude')
-            exclude = splitStripString(excludeString, ",")
-	if execConfig.has_option('sync', 'excludePush'):
-	    excludeString = execConfig.get('sync', 'excludePush')
-	    excludePush = splitStripString(excludeString, ",")
-        if execConfig.has_option('sync', 'excludePull'):
-            excludeString = execConfig.get('sync', 'excludePull')
-            excludePull = splitStripString(excludeString, ",")
- 
-    except ConfigParser.NoSectionError as e:
-        print('There was a problem with your config file. Please make sure it exists. Attempted path: ' + configFilePath + ' Error: ' + str(e))
-        exit()
-    except ConfigParser.NoOptionError as e:
-        print('There was a problem with your config file. You were missing at least one option we require. Error: ' + str(e))
-        exit()
-        
-    return(remoteHost + ":" + hostTreePath, exclude, excludePush, excludePull)
 
-
-def splitStripString(str, delim):
-
-    strSplit = str.split(delim)
-
-    def strip(x): return x.strip()
-
-    strSplit = map(strip, strSplit)
-
-    return strSplit
-    
 def runProcess(psData, filePathToPipe = ''):
 
     try:
@@ -118,24 +99,7 @@ def runProcess(psData, filePathToPipe = ''):
 
 
 def confirm(prompt=None, resp=False):
-    """prompts for yes or no response from the user. Returns True for yes and
-    False for no.
 
-    'resp' should be set to the default value assumed by the caller when
-    user simply types ENTER.
-
-    >>> confirm(prompt='Create Directory?', resp=True)
-    Create Directory? [y]|n: 
-    True
-    >>> confirm(prompt='Create Directory?', resp=False)
-    Create Directory? [n]|y: 
-    False
-    >>> confirm(prompt='Create Directory?', resp=False)
-    Create Directory? [n]|y: y
-    True
-
-    """
-    
     if prompt is None:
         prompt = 'Confirm'
 
@@ -156,8 +120,5 @@ def confirm(prompt=None, resp=False):
         if ans == 'n' or ans == 'N':
             return False
 
-
 main()
-
-
 
