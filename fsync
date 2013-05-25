@@ -39,6 +39,8 @@ def configFilePath():
 def addSlash(path):
     if path[len(path)-1] != '/':
         return(path + '/')
+    else:
+        return(path)
 
 def main():
 
@@ -47,7 +49,6 @@ def main():
         exit()
 
     command = sys.argv[1].lower()
-    dest = cwd()
     config = getConfig()
     
     runProcess(getRsyncCommand(command, config, True)).wait()
@@ -88,8 +89,6 @@ def getRsyncCommand(command, config, dryRun):
         rsyncCommand.append(config["remote"])
         rsyncCommand.append(config["local"])
 
-    for s in rsyncCommand:
-        sys.stdout.write(s + ' ');
 
     return(rsyncCommand)
     
