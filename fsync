@@ -59,7 +59,7 @@ def main():
     confirmed = False
 
     if not force:
-        print 'Doing dry run.'
+        print 'doing dry run'
         runProcess(getRsyncCommand(command, config, True)).wait()
 
         if command == 'push':
@@ -70,7 +70,7 @@ def main():
         confirmed = True
 
     if confirmed: 
-        print 'Doing live run.'
+        print 'doing live run'
         runProcess(getRsyncCommand(command, config, False)).wait()
     
 
