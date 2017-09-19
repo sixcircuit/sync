@@ -45,22 +45,32 @@ def addSlash(path):
 def main():
 
     if len(sys.argv) == 1:
-        print 'usage: fsync { push | pull }'
+        print 'usage: fsync { push | pull } [--force]'
         exit()
 
     command = sys.argv[1].lower()
     config = getConfig()
-    
-    runProcess(getRsyncCommand(command, config, True)).wait()
+
+    force = False
+
+    if len(sys.argv) > 2:
+        force = (sys.argv[2].lower() == "--force")
 
     confirmed = False
 
-    if command == 'push':
-	confirmed = confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?")
-    elif command == 'pull':
-        confirmed = confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?")
+    if not force:
+        print 'Doing dry run.'
+        runProcess(getRsyncCommand(command, config, True)).wait()
+
+        if command == 'push':
+	    confirmed = confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?")
+        elif command == 'pull':
+            confirmed = confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?")
+    else:
+        confirmed = True
 
     if confirmed: 
+        print 'Doing live run.'
         runProcess(getRsyncCommand(command, config, False)).wait()
     
 
