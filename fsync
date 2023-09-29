@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 import os
@@ -45,7 +45,7 @@ def addSlash(path):
 def main():
 
     if len(sys.argv) == 1:
-        print 'usage: fsync { push | pull } [--force]'
+        print('usage: fsync { push | pull } [--force]')
         exit()
 
     command = sys.argv[1].lower()
@@ -59,18 +59,18 @@ def main():
     confirmed = False
 
     if not force:
-        print 'doing dry run'
+        print('doing dry run')
         runProcess(getRsyncCommand(command, config, True)).wait()
 
         if command == 'push':
-	    confirmed = confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?")
+            confirmed = confirm("You will replace all remote host data with your data. Are you absolutely sure you want to do this?")
         elif command == 'pull':
             confirmed = confirm("You will replace all your data with the remote host data. Are you absolutely sure you want to do this?")
     else:
         confirmed = True
 
     if confirmed: 
-        print 'doing live run'
+        print('doing live run')
         runProcess(getRsyncCommand(command, config, False)).wait()
     
 
@@ -134,7 +134,7 @@ def confirm(prompt=None, resp=False):
         if not ans:
             return resp
         if ans not in ['y', 'Y', 'n', 'N']:
-            print 'please enter y or n.'
+            print('please enter y or n.')
             continue
         if ans == 'y' or ans == 'Y':
             return True
